@@ -126,6 +126,10 @@ def show_api_error(error: Exception):
         st.error("API серверіне қосыла алмадым. Бэкендтің іске қосылғанын тексеріңіз.")
 
 
+def go_to_placements():
+    st.session_state["section"] = "Практикалар"
+
+
 try:
     students = api_get("/students")
     bases = api_get("/bases")
@@ -164,9 +168,7 @@ if section == "Шолу":
         st.dataframe(table, width="stretch", hide_index=True)
     else:
         st.info("Практика жазбалары әлі жоқ.")
-    if st.button("Практикаларды басқару →", type="primary"):
-        st.session_state["section"] = "Практикалар"
-        st.rerun()
+    st.button("Практикаларды басқару →", type="primary", on_click=go_to_placements)
 
 elif section == "Практикалар":
     st.title("Практикалар")
