@@ -1,0 +1,7 @@
+FROM python:3.11-slim
+WORKDIR /app
+COPY app.py assistant.py schema.sql ./
+COPY dist ./dist
+ENV HOST=0.0.0.0 PORT=8765 PRAKTIKA_DB=/app/data/praktika.sqlite3 PRAKTIKA_UPLOAD_DIR=/app/data/uploads
+EXPOSE 8765
+CMD ["python", "app.py"]

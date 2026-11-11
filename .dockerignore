@@ -12,3 +12,4 @@ data/*.sqlite3
 .DS_Store
 start.bat
 start.command
+data/uploads/

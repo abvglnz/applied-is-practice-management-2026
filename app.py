@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """Praktika: stdlib-only local web application. Python 3.10+."""
-import csv, hashlib, hmac, io, json, os, secrets, sqlite3, time
+import csv, hashlib, hmac, io, json, mimetypes, os, secrets, sqlite3, time
 from datetime import date
+from email.parser import BytesParser
+from email.policy import default as email_policy
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, quote, urlparse
 from assistant import answer
 
 ROOT = Path(__file__).resolve().parent
 DB_PATH = Path(os.environ.get('PRAKTIKA_DB', str(ROOT / 'data' / 'praktika.sqlite3')))
+UPLOAD_DIR = Path(os.environ.get('PRAKTIKA_UPLOAD_DIR', str(DB_PATH.parent / 'uploads')))
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024
+ALLOWED_UPLOAD_EXTENSIONS = {'.pdf','.doc','.docx','.xls','.xlsx','.jpg','.jpeg','.png'}
+DOCUMENT_TYPES = {'diary':'Күнделік файлы','certificate':'Практика анықтамасы','contract':'Жалпы шарт','report':'Практика есебі'}
 SESSIONS = {}
 LOGIN_ATTEMPTS = {}
 FIELDS = {
@@ -56,6 +62,25 @@ def visible_placements(con,user):
     if user['role']=='admin': return [r['id'] for r in con.execute('SELECT id FROM placements')]
     key='student_id' if user['role']=='student' else 'supervisor_id'
     return [r['id'] for r in con.execute(f'SELECT id FROM placements WHERE {key}=?',(user[key],))]
+
+def can_access_placement(user,placement):
+    if not placement: return False
+    if user['role']=='admin': return True
+    if user['role']=='student': return placement['student_id']==user['student_id']
+    return placement['supervisor_id']==user['supervisor_id']
+
+def document_metadata(con,user,placement_id=None):
+    query='''SELECT d.id,d.placement_id,d.user_id,d.document_type,d.original_name,d.mime_type,
+                    d.file_size,d.status,d.created_at,u.name AS uploaded_by
+             FROM documents d JOIN placements p ON p.id=d.placement_id
+             JOIN users u ON u.id=d.user_id'''
+    clauses=[]; args=[]
+    if user['role']=='student': clauses.append('p.student_id=?'); args.append(user['student_id'])
+    elif user['role']=='supervisor': clauses.append('p.supervisor_id=?'); args.append(user['supervisor_id'])
+    if placement_id is not None: clauses.append('d.placement_id=?'); args.append(placement_id)
+    if clauses: query+=' WHERE '+' AND '.join(clauses)
+    query+=' ORDER BY d.created_at DESC,d.id DESC'
+    return [dict(row) for row in con.execute(query,args)]
 
 def dataset(con,user):
     result={k:[dict(r) for r in con.execute(f'SELECT * FROM {k} ORDER BY id DESC')] for k in FIELDS}
@@ -159,6 +184,28 @@ class Handler(BaseHTTPRequestHandler):
         size=int(self.headers.get('Content-Length','0'))
         if size>120000: raise ValueError('Сұрау көлемі тым үлкен.')
         return json.loads(self.rfile.read(size) or b'{}')
+    def multipart(self):
+        size=int(self.headers.get('Content-Length','0'))
+        if size<=0 or size>MAX_UPLOAD_SIZE+128*1024: raise ValueError('Файл бос немесе 10 МБ шегінен үлкен.')
+        content_type=self.headers.get('Content-Type','')
+        if not content_type.lower().startswith('multipart/form-data;'): raise ValueError('Файл multipart/form-data пішімінде жіберілуі керек.')
+        raw=self.rfile.read(size)
+        envelope=(b'MIME-Version: 1.0\r\nContent-Type: '+content_type.encode('ascii')+b'\r\n\r\n'+raw)
+        message=BytesParser(policy=email_policy).parsebytes(envelope)
+        if not message.is_multipart(): raise ValueError('Жүктелген файлдың пішімі дұрыс емес.')
+        fields={}; uploaded=None
+        for part in message.iter_parts():
+            name=part.get_param('name',header='content-disposition')
+            if not name: continue
+            filename=part.get_filename()
+            payload=part.get_payload(decode=True) or b''
+            if filename is not None:
+                if name!='file' or uploaded is not None: raise ValueError('Бір ретте бір файл ғана таңдаңыз.')
+                uploaded=(filename,payload)
+            else:
+                fields[name]=payload.decode('utf-8','replace').strip()
+        if uploaded is None: raise ValueError('Жүктеу үшін файл таңдаңыз.')
+        return fields,uploaded
     def user(self):
         cookies=dict(x.strip().split('=',1) for x in self.headers.get('Cookie','').split(';') if '=' in x)
         session=SESSIONS.get(cookies.get('session',''))
@@ -193,6 +240,67 @@ class Handler(BaseHTTPRequestHandler):
                     if SESSIONS[key] is self.session: SESSIONS.pop(key)
                 return self.send(200,{'ok':True},extra={'Set-Cookie':'session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'})
             with connect() as con:
+                if path=='/api/documents' and method=='GET':
+                    query=parse_qs(urlparse(self.path).query); raw_id=query.get('placement_id',[None])[0]
+                    placement_id=int(raw_id) if raw_id else None
+                    return self.send(200,document_metadata(con,user,placement_id))
+                if path=='/api/documents' and method=='POST':
+                    fields,(filename,payload)=self.multipart()
+                    try: placement_id=int(fields.get('placement_id',''))
+                    except ValueError: raise ValueError('Практиканы таңдаңыз.')
+                    document_type=fields.get('document_type','')
+                    if document_type not in DOCUMENT_TYPES: raise ValueError('Құжат түрін таңдаңыз.')
+                    placement=con.execute('SELECT * FROM placements WHERE id=?',(placement_id,)).fetchone()
+                    if not can_access_placement(user,placement): raise PermissionError('Бұл практикаға құжат жүктеуге құқығыңыз жоқ.')
+                    original_name=Path(filename.replace('\\','/')).name.strip()
+                    extension=Path(original_name).suffix.lower()
+                    if not original_name or len(original_name)>255: raise ValueError('Файл атауы 255 таңбадан аспауы керек.')
+                    if extension not in ALLOWED_UPLOAD_EXTENSIONS: raise ValueError('PDF, DOC, DOCX, XLS, XLSX, JPG немесе PNG файлын таңдаңыз.')
+                    if not payload or len(payload)>MAX_UPLOAD_SIZE: raise ValueError('Файл бос немесе 10 МБ шегінен үлкен.')
+                    stored_name=secrets.token_hex(24)+extension
+                    UPLOAD_DIR.mkdir(parents=True,exist_ok=True)
+                    file_path=UPLOAD_DIR/stored_name
+                    mime_type=mimetypes.guess_type(original_name)[0] or 'application/octet-stream'
+                    with file_path.open('xb') as uploaded_file: uploaded_file.write(payload)
+                    try:
+                        cur=con.execute('''INSERT INTO documents
+                            (placement_id,user_id,document_type,original_name,stored_name,mime_type,file_size)
+                            VALUES (?,?,?,?,?,?,?)''',
+                            (placement_id,user['id'],document_type,original_name,stored_name,mime_type,len(payload)))
+                        document_id=cur.lastrowid
+                        con.execute('INSERT INTO audit(user_id,action,entity,record_id) VALUES (?,?,?,?)',
+                                    (user['id'],'UPLOAD','documents',document_id))
+                        con.commit()
+                    except Exception:
+                        file_path.unlink(missing_ok=True)
+                        raise
+                    return self.send(201,{'ok':True,'id':document_id,'original_name':original_name,'document_type':document_type})
+                parts=path.strip('/').split('/')
+                if len(parts)==4 and parts[:2]==['api','documents'] and parts[3]=='download' and method=='GET':
+                    try: document_id=int(parts[2])
+                    except ValueError: return self.send(404,{'error':'Құжат табылмады.'})
+                    row=con.execute('''SELECT d.*,p.student_id,p.supervisor_id FROM documents d
+                                      JOIN placements p ON p.id=d.placement_id WHERE d.id=?''',(document_id,)).fetchone()
+                    if not row or not can_access_placement(user,row): return self.send(404,{'error':'Құжат табылмады.'})
+                    stored_name=Path(row['stored_name']).name
+                    file_path=UPLOAD_DIR/stored_name
+                    if not file_path.is_file(): return self.send(404,{'error':'Файл серверден табылмады.'})
+                    return self.send(200,file_path.read_bytes(),row['mime_type'],
+                                     {'Content-Disposition':"attachment; filename*=UTF-8''"+quote(row['original_name'],safe='')})
+                if len(parts)==3 and parts[:2]==['api','documents'] and method=='DELETE':
+                    try: document_id=int(parts[2])
+                    except ValueError: return self.send(404,{'error':'Құжат табылмады.'})
+                    row=con.execute('''SELECT d.*,p.student_id,p.supervisor_id FROM documents d
+                                      JOIN placements p ON p.id=d.placement_id WHERE d.id=?''',(document_id,)).fetchone()
+                    if not row: return self.send(404,{'error':'Құжат табылмады.'})
+                    allowed=user['role']=='admin' or (user['role']=='student' and row['user_id']==user['id'] and row['status']=='Ұсынылды')
+                    if not allowed: raise PermissionError('Бұл құжатты жоюға құқығыңыз жоқ.')
+                    con.execute('DELETE FROM documents WHERE id=?',(document_id,))
+                    con.execute('INSERT INTO audit(user_id,action,entity,record_id) VALUES (?,?,?,?)',
+                                (user['id'],'DELETE','documents',document_id))
+                    con.commit()
+                    (UPLOAD_DIR/Path(row['stored_name']).name).unlink(missing_ok=True)
+                    return self.send(200,{'ok':True,'id':document_id})
                 if path in ('/api/data','/api/export') and method=='GET':
                     data=dataset(con,user)
                     if path=='/api/data': return self.send(200,data)

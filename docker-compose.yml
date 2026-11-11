@@ -15,6 +15,20 @@ services:
       timeout: 3s
       retries: 15
 
+  portal:
+    build:
+      context: .
+      dockerfile: Dockerfile.portal
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8765
+      PRAKTIKA_DB: /app/data/praktika.sqlite3
+      PRAKTIKA_UPLOAD_DIR: /app/data/uploads
+    ports:
+      - "127.0.0.1:8765:8765"
+    volumes:
+      - portal_data:/app/data
+
   frontend:
     build:
       context: .
@@ -29,3 +43,4 @@ services:
 
 volumes:
   praktika_data:
+  portal_data:

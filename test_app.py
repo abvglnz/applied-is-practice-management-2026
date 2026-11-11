@@ -6,7 +6,7 @@ class AppTests(unittest.TestCase):
  @classmethod
  def setUpClass(cls):
   cls.temp=tempfile.TemporaryDirectory();cls.port=18765
-  cls.process=subprocess.Popen([sys.executable,str(ROOT/'app.py')],env={**os.environ,'PRAKTIKA_DB':cls.temp.name+'/test.sqlite3','PORT':str(cls.port),'OPENAI_API_KEY':''},stdout=subprocess.DEVNULL)
+  cls.process=subprocess.Popen([sys.executable,str(ROOT/'app.py')],env={**os.environ,'PRAKTIKA_DB':cls.temp.name+'/test.sqlite3','PRAKTIKA_UPLOAD_DIR':cls.temp.name+'/uploads','PORT':str(cls.port),'OPENAI_API_KEY':''},stdout=subprocess.DEVNULL)
   for _ in range(60):
    try: urllib.request.urlopen(f'http://127.0.0.1:{cls.port}/');break
    except urllib.error.URLError: time.sleep(.1)
@@ -23,6 +23,27 @@ class AppTests(unittest.TestCase):
   except urllib.error.HTTPError as err:r=err
   self.assertEqual(r.status,expected,r.read().decode() if r.status!=expected else '')
   raw=r.read();return json.loads(raw) if 'application/json' in r.headers.get('Content-Type','') else raw.decode('utf-8-sig')
+ def multipart(self,op,token,fields,filename='күнделік.pdf',payload=b'%PDF-1.4 test',expected=201):
+  boundary='----PraktikaBoundary7MA4YWxkTrZu0gW'
+  chunks=[]
+  for key,value in fields.items(): chunks.append((f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n').encode())
+  chunks.append((f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{filename}"\r\nContent-Type: application/pdf\r\n\r\n').encode()+payload+b'\r\n')
+  raw=b''.join(chunks)+f'--{boundary}--\r\n'.encode()
+  req=urllib.request.Request(f'http://127.0.0.1:{self.port}/api/documents',data=raw,method='POST',headers={'Content-Type':f'multipart/form-data; boundary={boundary}','X-CSRF-Token':token})
+  try:r=op.open(req)
+  except urllib.error.HTTPError as err:r=err
+  body=r.read();self.assertEqual(r.status,expected,body.decode(errors='replace') if r.status!=expected else '')
+  return json.loads(body)
+ def test_00_documents_upload_download_delete_and_scope(self):
+  op,t=self.client('student','Student2026!')
+  self.multipart(op,t,{'placement_id':'1','document_type':'diary'})
+  rows=self.call(op,'documents');self.assertEqual(len(rows),1);self.assertEqual(rows[0]['original_name'],'күнделік.pdf')
+  req=urllib.request.Request(f'http://127.0.0.1:{self.port}/api/documents/{rows[0]["id"]}/download')
+  raw=op.open(req).read();self.assertEqual(raw,b'%PDF-1.4 test')
+  self.multipart(op,t,{'placement_id':'2','document_type':'diary'},expected=403)
+  self.multipart(op,t,{'placement_id':'1','document_type':'diary'},'bad.exe',expected=400)
+  self.call(op,f'documents/{rows[0]["id"]}','DELETE',token=t,expected=200)
+  self.assertEqual(self.call(op,'documents'),[])
  def test_01_auth_and_csrf(self):
   op=urllib.request.build_opener();self.call(op,'data',expected=401)
   self.call(op,'login','POST',{'username':'admin','password':'wrong'},expected=401)
