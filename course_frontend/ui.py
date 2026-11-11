@@ -9,15 +9,15 @@ BASE_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
 TIMEOUT = 6
 
 st.set_page_config(page_title="Практиканы басқару", page_icon="🎓", layout="wide")
-dark_mode = st.sidebar.toggle("Қараңғы режим", key="dark_mode")
+dark_mode = st.session_state.get("dark_mode", False)
 theme = """
-:root { --bg:#f5f5f5; --surface:#ffffff; --surface2:#fafafa; --ink:#252b34;
-  --muted:#707780; --line:#dedede; --accent:#3563a5; --accent-soft:#edf2f8;
-  --nav:#505a69; --hero:#132447; --good:#238466; }
+:root { --bg:#f3f5fa; --surface:#ffffff; --surface2:#f7f8fc; --ink:#15213b;
+  --muted:#78839a; --line:#e4e8f0; --accent:#526af4; --accent-soft:#edf0ff;
+  --nav:#aeb9cf; --sidebar:#111d33; --hero:#101d37; --good:#35b99d; }
 """ if not dark_mode else """
-:root { --bg:#181b21; --surface:#22262e; --surface2:#292e37; --ink:#e7e9ed;
-  --muted:#a2aab7; --line:#3c424d; --accent:#94b5e4; --accent-soft:#273346;
-  --nav:#b8c0ce; --hero:#101b32; --good:#7cd7bc; }
+:root { --bg:#101725; --surface:#182235; --surface2:#202c40; --ink:#edf2fb;
+  --muted:#9ba9bf; --line:#2b3a52; --accent:#93a3ff; --accent-soft:#293450;
+  --nav:#aeb9cf; --sidebar:#0b1322; --hero:#101d37; --good:#7ce0c9; }
 """
 st.markdown(
     f"""<style>
@@ -25,52 +25,71 @@ st.markdown(
     .stApp {{ background:var(--bg); color:var(--ink); }}
     [data-testid="stHeader"], [data-testid="stToolbar"], footer {{ visibility:hidden; }}
     [data-testid="stAppViewContainer"] {{ background:var(--bg); }}
-    [data-testid="stSidebar"] {{ background:var(--surface); border-right:1px solid var(--line); }}
-    [data-testid="stSidebar"] > div:first-child {{ padding-top:1.4rem; }}
-    .block-container {{ padding:1.6rem 2.5rem 3rem; max-width:1550px; }}
+    [data-testid="stSidebar"] {{ background:var(--sidebar); border-right:1px solid #ffffff12; }}
+    [data-testid="stSidebar"] > div:first-child {{ padding:1.4rem 1rem 1rem; }}
+    .block-container {{ padding:1.8rem 2.7rem 3rem; max-width:1600px; }}
     h1,h2,h3,p,span,label {{ color:var(--ink); }}
     h1 {{ font-size:1.75rem!important; letter-spacing:-.5px; }}
     h2 {{ font-size:1.15rem!important; }}
-    [data-testid="stSidebar"] .stRadio label {{ color:var(--nav); font-size:.91rem; }}
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {{ color:var(--muted); }}
-    .brand {{ font-size:1.05rem; font-weight:700; margin:0 0 1.8rem .2rem; color:var(--ink); }}
-    .brand-mark {{ display:inline-grid; place-items:center; width:32px; height:32px; margin-right:9px;
-      background:var(--accent); color:white; border-radius:9px; font-size:17px; }}
-    .side-caption {{ font-size:.66rem; letter-spacing:1.3px; color:var(--muted); margin:0 0 .6rem .2rem; }}
-    .side-footer {{ border-top:1px solid var(--line); margin-top:2rem; padding-top:1rem;
-      color:var(--muted); font-size:.75rem; line-height:1.7; }}
-    .topline {{ display:flex; align-items:center; justify-content:space-between; padding:0 0 1.1rem;
-      margin-bottom:1.25rem; border-bottom:1px solid var(--line); }}
-    .topline small {{ color:var(--muted); font-size:.72rem; }}
-    .topline strong {{ display:block; font-size:.92rem; color:var(--ink); }}
-    .pill {{ display:inline-block; color:var(--accent); background:var(--accent-soft);
-      padding:5px 10px; border-radius:4px; font-size:.7rem; }}
+    [data-testid="stSidebar"] .stRadio label {{ color:var(--nav); font-size:.88rem; padding:.3rem .45rem;
+      border-radius:9px; transition:all .18s ease; }}
+    [data-testid="stSidebar"] .stRadio label:hover {{ background:#ffffff12; color:#ffffff; }}
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {{ color:#aebbd1; }}
+    [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {{ color:#aebbd1!important; }}
+    .brand {{ font-size:1.02rem; font-weight:700; margin:0 0 1.8rem .2rem; color:#f5f7fc; }}
+    .brand-mark {{ display:inline-grid; place-items:center; width:34px; height:34px; margin-right:9px;
+      background:linear-gradient(145deg,#7c8dff,#526af4); color:white; border-radius:11px; font-size:17px;
+      box-shadow:0 7px 18px #526af450; }}
+    .side-caption {{ font-size:.63rem; letter-spacing:1.5px; color:#71809a; margin:0 0 .55rem .35rem; }}
+    .side-footer {{ border-top:1px solid #ffffff18; margin-top:2rem; padding:1rem .35rem 0;
+      color:#aebbd1; font-size:.72rem; line-height:1.7; }}
+    .topline {{ display:flex; align-items:center; justify-content:space-between; padding:0 0 1rem;
+      margin-bottom:1.4rem; border-bottom:1px solid var(--line); }}
+    .topline small {{ color:var(--muted); font-size:.72rem; letter-spacing:.2px; }}
+    .topline strong {{ display:block; font-size:.92rem; color:var(--ink); margin-top:2px; }}
+    .pill {{ display:inline-block; color:var(--good); background:color-mix(in srgb,var(--good) 12%,transparent);
+      padding:6px 11px; border-radius:30px; font-size:.7rem; font-weight:650; }}
     .hero {{ display:flex; justify-content:space-between; align-items:center; gap:1rem; color:#f4f6ff;
-      background:var(--hero); border-radius:12px; padding:1.7rem 2rem; margin:.4rem 0 1.3rem; }}
+      background:radial-gradient(circle at 88% 20%,#526af455 0,transparent 28%),
+                 linear-gradient(116deg,#101d37 0%,#1b315b 64%,#294786 100%);
+      border-radius:17px; padding:2rem 2.2rem; margin:.4rem 0 1.35rem; position:relative; overflow:hidden;
+      box-shadow:0 15px 34px #182b4b20; }}
+    .hero:after {{ content:''; position:absolute; width:210px; height:210px; right:8%; top:-130px;
+      border:1px solid #ffffff25; border-radius:50%; box-shadow:0 0 0 28px #ffffff08,0 0 0 56px #ffffff06; }}
     .hero * {{ color:#f4f6ff!important; }}
-    .hero .eyebrow {{ color:#aebaff!important; font-size:.68rem; letter-spacing:1.4px; }}
-    .hero h2 {{ font-size:1.5rem!important; margin:.4rem 0; }}
-    .hero p {{ color:#abb9d5!important; margin:.35rem 0 0; font-size:.85rem; }}
-    .hero-mark {{ font-size:3.5rem; opacity:.75; padding:0 1rem; }}
+    .hero .eyebrow {{ color:#aebaff!important; font-size:.66rem; letter-spacing:1.6px; font-weight:700; }}
+    .hero h2 {{ font-size:1.65rem!important; margin:.55rem 0; letter-spacing:-.5px; }}
+    .hero p {{ color:#c0cbe2!important; margin:.35rem 0 0; font-size:.84rem; max-width:590px; }}
+    .hero-mark {{ font-size:3.6rem; opacity:.85; padding:0 1rem; color:#b9c6ff; z-index:1; }}
     [data-testid="stMetric"] {{ background:var(--surface); border:1px solid var(--line);
-      border-radius:9px; padding:.9rem 1rem; }}
-    [data-testid="stMetricLabel"] {{ color:var(--muted)!important; font-size:.76rem; }}
-    [data-testid="stMetricValue"] {{ color:var(--ink)!important; font-size:1.7rem; }}
-    [data-testid="stDataFrame"] {{ border:1px solid var(--line); border-radius:8px; overflow:hidden; }}
-    .stButton button {{ border-radius:5px; border-color:var(--line); }}
-    .stButton button[kind="primary"] {{ background:var(--accent); border-color:var(--accent); color:white; }}
+      border-radius:13px; padding:1rem 1.05rem; box-shadow:0 8px 22px #23375b0a;
+      transition:transform .16s ease,box-shadow .16s ease; }}
+    [data-testid="stMetric"]:hover {{ transform:translateY(-2px); box-shadow:0 12px 25px #23375b14; }}
+    [data-testid="stMetricLabel"] {{ color:var(--muted)!important; font-size:.74rem; }}
+    [data-testid="stMetricValue"] {{ color:var(--ink)!important; font-size:1.8rem; font-weight:700; }}
+    [data-testid="stDataFrame"] {{ border:1px solid var(--line); border-radius:11px; overflow:hidden;
+      box-shadow:0 8px 22px #23375b08; }}
+    .stButton button {{ border-radius:8px; border:1px solid var(--line); min-height:2.55rem;
+      font-weight:600; transition:all .15s ease; }}
+    .stButton button:hover {{ border-color:var(--accent); color:var(--accent); transform:translateY(-1px); }}
+    .stButton button[kind="primary"] {{ background:linear-gradient(120deg,#526af4,#687df7);
+      border-color:var(--accent); color:white; box-shadow:0 6px 14px #526af433; }}
     [data-testid="stForm"] {{ background:var(--surface); border:1px solid var(--line);
-      border-radius:9px; padding:1rem; }}
-    input, textarea, [data-baseweb="select"] > div {{ border-radius:5px!important; }}
+      border-radius:13px; padding:1.1rem; box-shadow:0 8px 22px #23375b0a; }}
+    input, textarea, [data-baseweb="select"] > div {{ border-radius:8px!important; }}
+    [data-testid="stTextInput"] input:focus,[data-testid="stDateInput"] input:focus {{
+      border-color:var(--accent)!important; box-shadow:0 0 0 2px #526af425!important; }}
+    [data-testid="stSubheader"] {{ margin-top:1.15rem; }}
     hr {{ border-color:var(--line); }}
     div[data-testid="stAlert"] {{ border-radius:6px; }}
     @media(max-width:760px) {{ .block-container {{ padding:.9rem 1rem 2rem; }}
-      .hero {{ padding:1.2rem; }} .hero-mark {{ display:none; }} }}
+      .hero {{ padding:1.25rem; }} .hero-mark {{ display:none; }} }}
     </style>""",
     unsafe_allow_html=True,
 )
 
 st.sidebar.markdown('<div class="brand"><span class="brand-mark">П</span>Практиканы басқару</div>', unsafe_allow_html=True)
+st.sidebar.toggle("Қараңғы режим", key="dark_mode")
 st.sidebar.markdown('<div class="side-caption">ПРАКТИКАНЫ БАСҚАРУ</div>', unsafe_allow_html=True)
 section = st.sidebar.radio(
     "Бөлімді таңдаңыз",
@@ -120,20 +139,20 @@ except requests.RequestException as exc:
 
 if section == "Шолу":
     st.markdown(
-        '<div class="hero"><div><span class="eyebrow">№2 ОҚУ ЖОБАСЫ</span>'
+        '<div class="hero"><div><span class="eyebrow">№2 ОҚУ ЖОБАСЫ　·　2026</span>'
         '<h2>Кәсіби практиканы есепке алу</h2>'
         '<p>Студенттерді практикаға бөлу, мерзімдерді бақылау және жетекшілер жұмысын үйлестіру.</p>'
-        '</div><div class="hero-mark">⌂</div></div>',
+        '</div><div class="hero-mark">✦</div></div>',
         unsafe_allow_html=True,
     )
     total_students = len({row["student_id"] for row in all_placements})
     total_bases = len({row["base_id"] for row in all_placements})
     total_supervisors = len({row["supervisor_id"] for row in all_placements})
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Практика жазбалары", len(all_placements))
-    c2.metric("Қамтылған студенттер", total_students)
-    c3.metric("Практика базалары", total_bases)
-    c4.metric("Жетекшілер", total_supervisors)
+    c1.metric("🗂 Практика жазбалары", len(all_placements))
+    c2.metric("🎓 Қамтылған студенттер", total_students)
+    c3.metric("🏢 Практика базалары", total_bases)
+    c4.metric("👤 Жетекшілер", total_supervisors)
     st.write("")
     st.subheader("Соңғы практика жазбалары")
     if all_placements:
