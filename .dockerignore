@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.git/
+.venv/
+venv/
+.env
+data/*.sqlite3
+*.db
+.DS_Store
+start.bat
+start.command

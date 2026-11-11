@@ -1,0 +1,256 @@
+{
+  "students": [
+    {
+      "id": 1,
+      "name": "Әлия Нұрлан",
+      "group_name": "АЖ-23-1",
+      "email": "student1@example.edu"
+    },
+    {
+      "id": 2,
+      "name": "Данияр Асқар",
+      "group_name": "АЖ-23-1",
+      "email": "student2@example.edu"
+    },
+    {
+      "id": 3,
+      "name": "Аружан Ермек",
+      "group_name": "АЖ-23-2",
+      "email": "student3@example.edu"
+    },
+    {
+      "id": 4,
+      "name": "Мирас Болат",
+      "group_name": "АЖ-23-2",
+      "email": "student4@example.edu"
+    },
+    {
+      "id": 5,
+      "name": "Айша Серік",
+      "group_name": "АЖ-23-1",
+      "email": "student5@example.edu"
+    },
+    {
+      "id": 6,
+      "name": "Нұрсұлтан Әділ",
+      "group_name": "АЖ-23-2",
+      "email": "student6@example.edu"
+    },
+    {
+      "id": 7,
+      "name": "Мәдина Омар",
+      "group_name": "АЖ-23-1",
+      "email": "student7@example.edu"
+    },
+    {
+      "id": 8,
+      "name": "Ерасыл Қанат",
+      "group_name": "АЖ-23-2",
+      "email": "student8@example.edu"
+    }
+  ],
+  "bases": [
+    {
+      "id": 1,
+      "name": "Qadam Digital",
+      "address": "Алматы, Абай даңғылы 52",
+      "contact": "practice@example.com",
+      "capacity": 4
+    },
+    {
+      "id": 2,
+      "name": "Orda IT Lab",
+      "address": "Астана, Тұран даңғылы 18",
+      "contact": "orda@example.com",
+      "capacity": 3
+    },
+    {
+      "id": 3,
+      "name": "Bilim Tech",
+      "address": "Шымкент, Тәуке хан көшесі 12",
+      "contact": "bilim@example.com",
+      "capacity": 3
+    }
+  ],
+  "supervisors": [
+    {
+      "id": 1,
+      "name": "Айдана Сәрсенова",
+      "position": "Аға оқытушы",
+      "email": "aidana@example.edu"
+    },
+    {
+      "id": 2,
+      "name": "Ерлан Мұратов",
+      "position": "Кафедра оқытушысы",
+      "email": "erlan@example.edu"
+    },
+    {
+      "id": 3,
+      "name": "Мөлдір Қасымова",
+      "position": "Практика жетекшісі",
+      "email": "moldir@example.edu"
+    }
+  ],
+  "contracts": [
+    {
+      "id": 1,
+      "number": "ПР-2026-001",
+      "base_id": 1,
+      "start_date": "2026-01-01",
+      "end_date": "2026-12-31"
+    },
+    {
+      "id": 2,
+      "number": "ПР-2026-002",
+      "base_id": 2,
+      "start_date": "2026-01-01",
+      "end_date": "2026-12-31"
+    },
+    {
+      "id": 3,
+      "number": "ПР-2026-003",
+      "base_id": 3,
+      "start_date": "2026-01-01",
+      "end_date": "2026-12-31"
+    }
+  ],
+  "placements": [
+    {
+      "id": 1,
+      "student_id": 1,
+      "base_id": 1,
+      "supervisor_id": 1,
+      "contract_id": 1,
+      "kind": "Өндірістік практика",
+      "start_date": "2026-10-05",
+      "end_date": "2026-10-30"
+    },
+    {
+      "id": 2,
+      "student_id": 2,
+      "base_id": 1,
+      "supervisor_id": 1,
+      "contract_id": 1,
+      "kind": "Өндірістік практика",
+      "start_date": "2026-10-05",
+      "end_date": "2026-10-30"
+    },
+    {
+      "id": 3,
+      "student_id": 3,
+      "base_id": 2,
+      "supervisor_id": 2,
+      "contract_id": 2,
+      "kind": "Өндірістік практика",
+      "start_date": "2026-10-05",
+      "end_date": "2026-10-30"
+    },
+    {
+      "id": 4,
+      "student_id": 4,
+      "base_id": 2,
+      "supervisor_id": 2,
+      "contract_id": 2,
+      "kind": "Өндірістік практика",
+      "start_date": "2026-10-05",
+      "end_date": "2026-10-30"
+    },
+    {
+      "id": 5,
+      "student_id": 5,
+      "base_id": 3,
+      "supervisor_id": 1,
+      "contract_id": 3,
+      "kind": "Өндірістік практика",
+      "start_date": "2026-10-05",
+      "end_date": "2026-10-30"
+    },
+    {
+      "id": 6,
+      "student_id": 6,
+      "base_id": 3,
+      "supervisor_id": 2,
+      "contract_id": 3,
+      "kind": "Өндірістік практика",
+      "start_date": "2026-10-05",
+      "end_date": "2026-10-30"
+    }
+  ],
+  "diaries": [
+    {
+      "id": 1,
+      "placement_id": 1,
+      "date": "2026-10-05",
+      "content": "Ұйыммен таныстым, қауіпсіздік нұсқаулығын өттім.",
+      "hours": 6,
+      "status": "Қабылданды",
+      "feedback": "Жақсы бастама."
+    },
+    {
+      "id": 2,
+      "placement_id": 1,
+      "date": "2026-10-06",
+      "content": "Дерекқор кестелерін зерттеп, байланыстар сызбасын дайындадым.",
+      "hours": 6,
+      "status": "Ұсынылды",
+      "feedback": ""
+    },
+    {
+      "id": 3,
+      "placement_id": 2,
+      "date": "2026-10-05",
+      "content": "Веб-қосымша талаптарын талдап, жұмыс жоспарын құрдым.",
+      "hours": 6,
+      "status": "Қабылданды",
+      "feedback": "Жоспар қабылданды."
+    },
+    {
+      "id": 4,
+      "placement_id": 3,
+      "date": "2026-10-06",
+      "content": "Интерфейс прототипін жасадым.",
+      "hours": 6,
+      "status": "Түзету қажет",
+      "feedback": "Нәтижені нақты сипаттаңыз."
+    },
+    {
+      "id": 5,
+      "placement_id": 5,
+      "date": "2026-10-07",
+      "content": "API сұрауларының жұмысын тексердім.",
+      "hours": 6,
+      "status": "Ұсынылды",
+      "feedback": ""
+    }
+  ],
+  "reports": [
+    {
+      "id": 1,
+      "placement_id": 2,
+      "title": "Практиканың аралық есебі",
+      "content": "Ұйымның ішкі веб-жүйесіне қойылатын талаптар талданды. Деректер моделі және интерфейс прототипі дайындалды. Тестілік сұраулар орындалды. Келесі кезеңде деректерді енгізу модулі жасалады.",
+      "status": "Қабылданды",
+      "feedback": "Аралық нәтиже қабылданды."
+    },
+    {
+      "id": 2,
+      "placement_id": 3,
+      "title": "Практиканың аралық есебі",
+      "content": "Дизайн компоненттері және басты бет прототипі әзірленді. Қолжетімділік талаптары қарастырылды.",
+      "status": "Ұсынылды",
+      "feedback": ""
+    }
+  ],
+  "grades": [
+    {
+      "id": 1,
+      "placement_id": 2,
+      "discipline": 95,
+      "diary": 90,
+      "report": 88,
+      "defense": 92,
+      "comment": "Оқу деректеріндегі бағалау мысалы."
+    }
+  ]
+}
